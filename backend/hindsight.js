@@ -1,75 +1,53 @@
-// hindsight.js — Hindsight Cloud memory layer
-// Docs: https://hindsight.vectorize.io/
-// All API calls go through Hindsight REST API
+// hindsight.js — Official Hindsight SDK Implementation
+import { HindsightClient } from '@vectorize-io/hindsight-client';
 
-import fetch from "node-fetch";
+// Initialize the official client using your environment variables
+const client = new HindsightClient({
+  baseUrl: 'https://api.hindsight.vectorize.io',
+  apiKey: process.env.HINDSIGHT_API_KEY
+});
 
-const BASE_URL = "https://api.hindsight.vectorize.io/v1";
+// Helper function to get the current Bank ID (Pipeline ID)
+const BANK_ID = () => process.env.HINDSIGHT_PIPELINE_ID;
 
-function headers() {
-  return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${process.env.HINDSIGHT_API_KEY}`,
-  };
-}
-
-const PIPELINE_ID = () => process.env.HINDSIGHT_PIPELINE_ID;
-
-// ── Store a memory (trade log, insight, observation) ──────────────────────────
+/**
+ * Stores a new memory (trade log or observation) in Hindsight.
+ * @param {string} content - The text of the chat or trade details.
+ * @param {object} metadata - Tags like { type: "trade_log", outcome: "WIN" }.
+ */
 export async function storeMemory({ content, metadata = {} }) {
   try {
-    const res = await fetch(`${BASE_URL}/pipelines/${PIPELINE_ID()}/documents`, {
-      method: "POST",
-      headers: headers(),
-      body: JSON.stringify({
-        documents: [
-          {
-            content,
-            metadata: {
-              ...metadata,
-              timestamp: new Date().toISOString(),
-              source: "tradememory",
-            },
-          },
-        ],
-      }),
+    // Uses the official 'retain' method for permanent storage
+    const result = await client.retain(BANK_ID(), content, { 
+      metadata: {
+        ...metadata,
+        source: "tradememory",
+        timestamp: new Date().toISOString()
+      } 
     });
-
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error(`Hindsight store error: ${res.status} — ${err}`);
-    }
-
-    const data = await res.json();
-    return { success: true, data };
+    
+    return { success: true, data: result };
   } catch (error) {
     console.error("[Hindsight] storeMemory error:", error.message);
     return { success: false, error: error.message };
   }
 }
 
-// ── Recall relevant memories via semantic search ──────────────────────────────
+/**
+ * Recalls relevant past trades using semantic search.
+ * @param {string} query - The user's current message.
+ * @param {number} topK - Number of memories to retrieve.
+ */
 export async function recallMemories({ query, topK = 5 }) {
   try {
-    const res = await fetch(`${BASE_URL}/pipelines/${PIPELINE_ID()}/retrieve`, {
-      method: "POST",
-      headers: headers(),
-      body: JSON.stringify({
-        query,
-        top_k: topK,
-      }),
-    });
-
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error(`Hindsight recall error: ${res.status} — ${err}`);
-    }
-
-    const data = await res.json();
-    const memories = (data.results || []).map((r) => ({
-      content: r.content || r.document?.content || "",
+    // Uses the official 'recall' method for semantic search
+    const result = await client.recall(BANK_ID(), query, { limit: topK });
+    
+    // Map the SDK response to the format expected by agent.js
+    const memories = (result.results || []).map((r) => ({
+      content: r.text || r.content || "",
       score: r.score,
-      metadata: r.metadata || r.document?.metadata || {},
+      metadata: r.metadata || {},
     }));
 
     return { success: true, memories };
@@ -79,21 +57,22 @@ export async function recallMemories({ query, topK = 5 }) {
   }
 }
 
-// ── List all stored documents (for stats / history) ───────────────────────────
-export async function listMemories({ limit = 20 } = {}) {
+/**
+ * Lists memories to calculate dashboard statistics.
+ * @param {number} limit - Number of documents to fetch.
+ */
+export async function listMemories({ limit = 100 } = {}) {
   try {
-    const res = await fetch(
-      `${BASE_URL}/pipelines/${PIPELINE_ID()}/documents?limit=${limit}`,
-      { method: "GET", headers: headers() }
-    );
-
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error(`Hindsight list error: ${res.status} — ${err}`);
-    }
-
-    const data = await res.json();
-    return { success: true, documents: data.documents || data.results || [] };
+    // If a direct 'list' is unavailable, we recall with an empty query to get recent data
+    const result = await client.recall(BANK_ID(), "", { limit });
+    
+    return { 
+      success: true, 
+      documents: (result.results || []).map(r => ({
+        content: r.text || r.content || "",
+        metadata: r.metadata || {}
+      }))
+    };
   } catch (error) {
     console.error("[Hindsight] listMemories error:", error.message);
     return { success: false, documents: [], error: error.message };

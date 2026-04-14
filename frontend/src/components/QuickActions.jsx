@@ -1,5 +1,6 @@
 // components/QuickActions.jsx
-import React from "react";
+// Change it to this:
+import { useState, useEffect } from "react";
 import { TrendingUp, TrendingDown, Search, Lightbulb, BarChart2, AlertTriangle } from "lucide-react";
 
 const QUICK_ACTIONS = [
@@ -41,15 +42,14 @@ const QUICK_ACTIONS = [
   },
 ];
 
-export default function QuickActions({ onSelect }) {
-  return (
+export default function QuickActions({ onAction }) {  return (
     <div style={styles.container}>
       <div style={styles.label}>Quick Actions</div>
       <div style={styles.actions}>
         {QUICK_ACTIONS.map((action, i) => (
           <button
             key={i}
-            onClick={() => onSelect(action.prompt)}
+            onClick={() => onAction(action.prompt)}
             style={styles.btn}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = "var(--bg-hover)";
