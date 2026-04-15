@@ -64,7 +64,7 @@ export default function StatsBar() {
       ))}
       <div style={styles.poweredBy}>
         <span style={styles.poweredDot} />
-        Hindsight Memory Active
+        Institutional Memory Enabled
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 // server.js — TradeMemory Express API server
+import YahooFinance from 'yahoo-finance2';
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
@@ -61,4 +62,27 @@ app.get("/api/stats", async (req, res) => {
 app.listen(PORT, () => {
     console.log(`TradeMemory API Running on Port: ${PORT}`);
     console.log(`LLM Configured: qwen/qwen3-32b`);
+});
+
+const yahooFinance = new YahooFinance(); // Add this line if you haven't!
+
+app.get("/api/market-ticker", async (req, res) => {
+  try {
+    const symbols = ["^NSEI", "RELIANCE.NS", "TCS.NS", "ZOMATO.NS", "HDFCBANK.NS"];
+    // IMPORTANT: yahooFinance.quote expects symbols to be passed correctly
+    const results = await yahooFinance.quote(symbols); 
+
+    const tickerData = results.map(stock => {
+      const priceChange = stock.regularMarketChangePercent || 0;
+      const symbolMap = { "^NSEI": "NIFTY", "RELIANCE.NS": "RELIANCE", "TCS.NS": "TCS" };
+      const shortName = symbolMap[stock.symbol] || stock.symbol.split('.')[0];
+      
+      return `${shortName} ${priceChange >= 0 ? '+' : ''}${priceChange.toFixed(2)}%`;
+    });
+
+    res.json(tickerData);
+  } catch (error) {
+    console.error("Detailed Backend Error:", error);
+    res.status(500).json({ error: error.message });
+  }
 });

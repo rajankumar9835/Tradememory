@@ -64,7 +64,7 @@ export async function recallMemories({ query, topK = 5 }) {
 export async function listMemories({ limit = 100 } = {}) {
   try {
     // If a direct 'list' is unavailable, we recall with an empty query to get recent data
-    const result = await client.recall(BANK_ID(), "", { limit });
+    const result = await client.recall(BANK_ID(), "trade", { limit });
     
     return { 
       success: true, 

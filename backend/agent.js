@@ -60,16 +60,23 @@ ${context}`
 
         // Set metadata required by server.js to calculate Win Rate
         const memoryType = (isWin || isLoss) ? "trade_log" : "observation";
-        const outcome = isWin ? "WIN" : (isLoss ? "LOSS" : null);
+        
+        // FIX: Ensure outcome is NEVER null. Use "NONE" or "PENDING" as a fallback string.
+        const outcome = isWin ? "WIN" : (isLoss ? "LOSS" : "NONE");
 
         // 6. Auto-save to Hindsight with the correct metadata
-        await storeMemory({ 
-            content: `User: ${userMessage} | AI: ${agentReply}`,
-            metadata: { 
-                type: memoryType, 
-                outcome: outcome
-            }
-        });
+        try {
+            await storeMemory({ 
+                content: `User: ${userMessage} | AI: ${agentReply}`,
+                metadata: { 
+                    type: memoryType, 
+                    outcome: outcome // Now guaranteed to be a valid string ("WIN", "LOSS", or "NONE")
+                }
+            });
+        } catch (storageError) {
+            console.error("Hindsight Storage Failed:", storageError.message);
+            // We don't throw here so the user still gets their AI reply even if saving fails
+        }
 
         // Returning empty toolsUsed array hides the tags from your chat UI
         return { response: agentReply, toolsUsed: [] };

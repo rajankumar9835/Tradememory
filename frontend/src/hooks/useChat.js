@@ -6,7 +6,7 @@ export default function useChat() {
     {
       role: "assistant",
       content:
-        "Welcome to **TradeMemory** — your AI trading journal with persistent memory.\n\nI remember every trade you log, every lesson you learn, and every pattern in your behavior. Tell me about a trade, ask me to analyze your patterns, or share a market observation.\n\n**Try:** *\"I just took a long on AAPL at 185, stopped out at 182, loss of $300. Got in too early on FOMO.\"*",
+        "Welcome to **TradeMemory** — your AI trading journal with persistent memory.\n\nI remember every trade you log, every lesson you learn, and every pattern in your behavior. Tell me about a trade, ask me to analyze your patterns, or share a market observation.\n\n**Try:** *\"I just took a long on NIFTY at ₹23,450, rode the momentum up to ₹23,580, and closed for a solid win! I waited for the breakout instead of jumping on FOMO.\"*",
       toolsUsed: [],
       id: "welcome",
     },
