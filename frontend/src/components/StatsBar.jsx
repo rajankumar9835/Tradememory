@@ -32,18 +32,6 @@ export default function StatsBar() {
       color: "var(--blue)",
     },
     {
-      icon: <TrendingUp size={14} />,
-      label: "Wins",
-      value: stats?.wins ?? "—",
-      color: "var(--green)",
-    },
-    {
-      icon: <TrendingDown size={14} />,
-      label: "Losses",
-      value: stats?.losses ?? "—",
-      color: "var(--red)",
-    },
-    {
       icon: <Target size={14} />,
       label: "Win Rate",
       value: stats?.winRate ? `${stats.winRate}%` : "—",
