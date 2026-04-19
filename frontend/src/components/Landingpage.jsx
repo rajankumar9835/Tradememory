@@ -1,5 +1,5 @@
-// main.jsx — Clerk provider wraps the entire app
-// VITE_CLERK_PUBLISHABLE_KEY must be set in frontend/.env
+// main.jsx — wrap entire app in ClerkProvider
+// Make sure VITE_CLERK_PUBLISHABLE_KEY is set in frontend/.env
 
 import React from "react";
 import ReactDOM from "react-dom/client";
@@ -11,17 +11,15 @@ const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 if (!PUBLISHABLE_KEY) {
   throw new Error(
-    "Missing VITE_CLERK_PUBLISHABLE_KEY — add it to frontend/.env\nGet it from https://dashboard.clerk.com → API Keys"
+    "Missing VITE_CLERK_PUBLISHABLE_KEY\n" +
+    "1. Go to https://dashboard.clerk.com\n" +
+    "2. Create an app → copy Publishable Key\n" +
+    "3. Add it to frontend/.env as VITE_CLERK_PUBLISHABLE_KEY=pk_test_..."
   );
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    {/*
-      ClerkProvider is the root auth context.
-      All useUser(), useClerk(), SignIn, SignUp, UserButton hooks
-      work anywhere inside this tree.
-    */}
     <ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/">
       <App />
     </ClerkProvider>

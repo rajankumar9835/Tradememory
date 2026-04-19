@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { SignedIn, SignedOut } from "@clerk/clerk-react";
 import Header from "./components/Header";
 import StatsBar from "./components/StatsBar";
 import MessageBubble from "./components/MessageBubble";
@@ -6,20 +7,20 @@ import ChatInput from "./components/ChatInput";
 import QuickActions from "./components/QuickActions";
 import Sidebar from "./components/Sidebar.jsx";
 import TypingIndicator from "./components/TypingIndicator";
+import LandingPage from "./components/LandingPage";
 import useChat from "./hooks/useChat";
 
-function App() {
+// ── Authenticated Dashboard (your original App content, untouched) ────────────
+function Dashboard() {
   const { messages, sendMessage, isLoading, stats, refreshStats } = useChat();
   const scrollRef = useRef(null);
 
-  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, isLoading]);
 
-  // Refresh stats on load
   useEffect(() => {
     refreshStats();
   }, []);
@@ -38,7 +39,7 @@ function App() {
 
       {/* Main Chat Area */}
       <main className="flex-1 overflow-hidden flex flex-col max-w-5xl w-full mx-auto px-4 py-4">
-        <div 
+        <div
           ref={scrollRef}
           className="flex-1 overflow-y-auto space-y-4 pr-2 scrollbar-thin scrollbar-thumb-gray-700"
         >
@@ -66,12 +67,12 @@ function App() {
           {messages.length < 2 && (
             <QuickActions onAction={handleQuickAction} />
           )}
-          
-          <ChatInput 
-            onSend={sendMessage} 
-            disabled={isLoading} 
+
+          <ChatInput
+            onSend={sendMessage}
+            disabled={isLoading}
           />
-          
+
           <p className="text-[10px] text-center text-gray-500 uppercase tracking-widest">
             Powered by Groq LLM & Hindsight Vector Memory
           </p>
@@ -81,4 +82,19 @@ function App() {
   );
 }
 
-export default App;
+// ── Root — Clerk switches between Landing and Dashboard ──────────────────────
+export default function App() {
+  return (
+    <>
+      {/* Unauthenticated users see the landing page */}
+      <SignedOut>
+        <LandingPage />
+      </SignedOut>
+
+      {/* Authenticated users get the full dashboard */}
+      <SignedIn>
+        <Dashboard />
+      </SignedIn>
+    </>
+  );
+}
