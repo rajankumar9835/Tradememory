@@ -44,6 +44,33 @@ app.post("/api/chat", async (req, res) => {
     }
 });
 
+// Add this new route to your server.js
+app.get("/api/stock/:query", async (req, res) => {
+  try {
+    // 1. Search for the best matching symbol based on the name/query
+    const searchResults = await yahooFinance.search(req.params.query);
+    
+    if (!searchResults.quotes || searchResults.quotes.length === 0) {
+      return res.status(404).json({ error: "No matches found" });
+    }
+
+    const bestMatch = searchResults.quotes[0];
+    const symbol = bestMatch.symbol;
+
+    // 2. Get the live price for that found symbol
+    const quote = await yahooFinance.quote(symbol);
+
+    res.json({
+      symbol: quote.symbol,
+      name: bestMatch.shortname || quote.shortName,
+      price: quote.regularMarketPrice,
+      changePercent: quote.regularMarketChangePercent
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Search failed" });
+  }
+});
+
 app.get("/api/stats", async (req, res) => {
     try {
         const result = await listMemories({ limit: 100 });

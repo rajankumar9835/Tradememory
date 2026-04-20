@@ -133,7 +133,7 @@ export default function Header() {
                 },
                 // User's name in the dropdown
                 userPreviewMainIdentifier: {
-                  color: "#f1f5f9",
+                  color: "#1c2023",
                   fontWeight: 700,
                 },
                 // User's email in dropdown

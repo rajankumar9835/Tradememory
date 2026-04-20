@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, createContext, useContext } from "react";
 import { SignedIn, SignedOut } from "@clerk/clerk-react";
 import Header from "./components/Header";
 import StatsBar from "./components/StatsBar";
@@ -10,91 +10,113 @@ import TypingIndicator from "./components/TypingIndicator";
 import LandingPage from "./components/LandingPage";
 import useChat from "./hooks/useChat";
 
-// ── Authenticated Dashboard (your original App content, untouched) ────────────
+// Theme context — used by Header, Sidebar, everywhere
+export const ThemeContext = createContext({ theme: "dark", toggleTheme: () => {} });
+export const useTheme = () => useContext(ThemeContext);
+
 function Dashboard() {
   const { messages, sendMessage, isLoading, stats, refreshStats } = useChat();
+  const { theme } = useTheme();
   const scrollRef = useRef(null);
+  const [quickPrompt, setQuickPrompt] = useState("");
+  const [promptKey, setPromptKey] = useState(0);
+  const isDark = theme === "dark";
 
   useEffect(() => {
-    if (scrollRef.current) {
+    if (scrollRef.current)
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
   }, [messages, isLoading]);
 
-  useEffect(() => {
-    refreshStats();
-  }, []);
+  useEffect(() => { refreshStats?.(); }, []);
 
   const handleQuickAction = (text) => {
+    setQuickPrompt(text);
+    setPromptKey(k => k + 1);
     sendMessage(text);
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[#0f1117] text-gray-100 font-sans">
-      {/* Top Navigation */}
+    <div style={{
+      display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden",
+      background: isDark ? "#0f1117" : "#f8fafc",
+      color: isDark ? "#f1f5f9" : "#0f172a",
+      fontFamily: "'DM Sans', sans-serif",
+      transition: "background 0.25s, color 0.25s",
+    }}>
       <Header />
-
-      {/* Real-time Memory Stats */}
       <StatsBar stats={stats} />
 
-      {/* Main Chat Area */}
-      <main className="flex-1 overflow-hidden flex flex-col max-w-5xl w-full mx-auto px-4 py-4">
-        <div
-          ref={scrollRef}
-          className="flex-1 overflow-y-auto space-y-4 pr-2 scrollbar-thin scrollbar-thumb-gray-700"
-        >
-          {messages.length === 0 && (
-            <div className="h-full flex flex-col items-center justify-center text-center opacity-50 space-y-4">
-              <div className="p-4 rounded-full bg-blue-500/10">
-                <span className="text-4xl">📉</span>
+      {/* ✅ FIXED: flex row so Sidebar sits beside main */}
+      <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+
+        {/* ✅ Sidebar rendered here — this was missing */}
+        <Sidebar />
+
+        <main style={{
+          flex: 1, display: "flex", flexDirection: "column", overflow: "hidden",
+        }}>
+          <div ref={scrollRef} style={{
+            flex: 1, overflowY: "auto", padding: "20px 28px",
+            display: "flex", flexDirection: "column", gap: 14,
+          }}>
+            {messages.length === 0 && (
+              <div style={{
+                flex: 1, display: "flex", flexDirection: "column",
+                alignItems: "center", justifyContent: "center",
+                textAlign: "center", opacity: 0.4, gap: 14,
+              }}>
+                <div style={{ padding: 20, borderRadius: "50%", background: "rgba(59,130,246,0.08)" }}>
+                  <span style={{ fontSize: 40 }}>📉</span>
+                </div>
+                <div>
+                  <h2 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 6px" }}>TradeMemory Terminal</h2>
+                  <p style={{ fontSize: 13, color: isDark ? "#64748b" : "#94a3b8", margin: 0 }}>
+                    Log your trades, ask for hindsight, or analyze patterns.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-xl font-semibold">TradeMemory Terminal</h2>
-                <p className="text-sm">Log your trades, ask for hindsight, or analyze patterns.</p>
-              </div>
-            </div>
-          )}
+            )}
+            {messages.map((msg, index) => <MessageBubble key={index} message={msg} />)}
+            {isLoading && <TypingIndicator />}
+          </div>
 
-          {messages.map((msg, index) => (
-            <MessageBubble key={index} message={msg} />
-          ))}
-
-          {isLoading && <TypingIndicator />}
-        </div>
-
-        {/* Interaction Layer */}
-        <div className="mt-4 space-y-4">
-          {messages.length < 2 && (
-            <QuickActions onAction={handleQuickAction} />
-          )}
-
-          <ChatInput
-            onSend={sendMessage}
-            disabled={isLoading}
-          />
-
-          <p className="text-[10px] text-center text-gray-500 uppercase tracking-widest">
-            Powered by Groq LLM & Hindsight Vector Memory
-          </p>
-        </div>
-      </main>
+          <div style={{
+            borderTop: isDark ? "1px solid #1e293b" : "1px solid #e2e8f0",
+            background: isDark ? "#0c1118" : "#ffffff",
+            padding: "12px 20px 10px",
+            transition: "background 0.25s",
+          }}>
+            {messages.length < 2 && <QuickActions onAction={handleQuickAction} />}
+            <ChatInput key={promptKey} onSend={sendMessage} disabled={isLoading} initialValue={quickPrompt} />
+            <p style={{
+              textAlign: "center", fontSize: 10, margin: "6px 0 2px",
+              color: isDark ? "#1e293b" : "#cbd5e1",
+              textTransform: "uppercase", letterSpacing: "1px",
+            }}>
+              Powered by Groq LLM & Hindsight Vector Memory
+            </p>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
 
-// ── Root — Clerk switches between Landing and Dashboard ──────────────────────
 export default function App() {
-  return (
-    <>
-      {/* Unauthenticated users see the landing page */}
-      <SignedOut>
-        <LandingPage />
-      </SignedOut>
+  const [theme, setTheme] = useState(() => localStorage.getItem("tm-theme") || "dark");
 
-      {/* Authenticated users get the full dashboard */}
-      <SignedIn>
-        <Dashboard />
-      </SignedIn>
-    </>
+  const toggleTheme = () => {
+    setTheme(prev => {
+      const next = prev === "dark" ? "light" : "dark";
+      localStorage.setItem("tm-theme", next);
+      return next;
+    });
+  };
+
+  return (
+    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+      <SignedOut><LandingPage /></SignedOut>
+      <SignedIn><Dashboard /></SignedIn>
+    </ThemeContext.Provider>
   );
 }
